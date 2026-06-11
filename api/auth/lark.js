@@ -8,14 +8,32 @@ export default async function handler(req, res) {
   if (!code) return res.status(400).json({ error: "Missing code" });
 
   try {
+    // Lấy lark_app_id/secret của user này
+    const users = await sql`
+      SELECT id, lark_app_id, lark_app_secret
+      FROM users WHERE api_key = ${state}
+    `;
+
+    if (users.length === 0) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    const user = users[0];
+    const appId = user.lark_app_id;
+    const appSecret = user.lark_app_secret;
+
+    if (!appId || !appSecret) {
+      return res.status(400).json({ error: "User chưa có Lark App ID/Secret" });
+    }
+
     const tokenRes = await fetch("https://open.larksuite.com/open-apis/authen/v1/access_token", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         grant_type: "authorization_code",
         code,
-        app_id: process.env.LARK_APP_ID,
-        app_secret: process.env.LARK_APP_SECRET,
+        app_id: appId,
+        app_secret: appSecret,
       }),
     });
 
