@@ -1,166 +1,118 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Assistant — Kết nối lịch</title>
+  <meta charset="UTF-8">
+  <title>Setup — Kết nối tài khoản</title>
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      min-height: 100vh;
-      background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
-      display: flex; align-items: center; justify-content: center;
-      font-family: -apple-system, 'Inter', sans-serif; padding: 24px;
-    }
-    .card {
-      background: #1e293b; border: 1px solid #334155; border-radius: 20px;
-      width: 100%; max-width: 460px; overflow: hidden;
-      box-shadow: 0 25px 50px rgba(0,0,0,0.4);
-    }
-    .header {
-      padding: 32px 36px 24px;
-      background: linear-gradient(135deg, #1e3a5f 0%, #1e293b 100%);
-      border-bottom: 1px solid #334155;
-    }
-    .logo { color: #60a5fa; font-size: 13px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; margin-bottom: 16px; }
-    h1 { font-size: 22px; font-weight: 700; color: #f1f5f9; margin-bottom: 8px; }
-    .subtitle { font-size: 14px; color: #94a3b8; line-height: 1.6; }
-    .body { padding: 28px 36px 36px; }
-
-    .row { display: flex; align-items: center; justify-content: space-between; padding: 16px 0; }
-    .row-left { display: flex; align-items: center; gap: 14px; }
-    .row-icon { font-size: 22px; }
-    .row-label { font-size: 15px; font-weight: 600; color: #f1f5f9; }
-    .row-status { font-size: 13px; margin-top: 2px; color: #94a3b8; }
-    .row-status.done { color: #22c55e; }
-    .divider { height: 1px; background: #334155; }
-    .connect-btn {
-      padding: 8px 18px; background: #0f172a;
-      border: 1px solid #334155; border-radius: 8px;
-      color: #60a5fa; font-size: 13px; font-weight: 600; text-decoration: none;
-    }
-    .checkmark { color: #22c55e; font-size: 20px; font-weight: 700; }
-    .hint { margin-top: 20px; font-size: 13px; color: #475569; line-height: 1.6; text-align: center; }
-    .success-box {
-      margin-top: 20px; padding: 18px;
-      background: #0f2d1a; border: 1px solid #166534; border-radius: 12px; text-align: center;
-    }
-    .success-box p { color: #86efac; font-size: 14px; margin-bottom: 12px; }
-    .success-btn {
-      display: inline-block; padding: 10px 24px;
-      background: linear-gradient(135deg, #16a34a, #22c55e);
-      color: #fff; border-radius: 8px; font-size: 14px; font-weight: 600; text-decoration: none;
-    }
-    .error-box {
-      padding: 20px; text-align: center; color: #f87171; font-size: 14px; line-height: 1.6;
-    }
+    * { box-sizing: border-box; }
+    body { font-family: sans-serif; max-width: 480px; margin: 60px auto; padding: 0 20px; }
+    h1 { font-size: 22px; margin-bottom: 6px; }
+    .subtitle { color: #666; font-size: 14px; margin-bottom: 32px; }
+    .card { border: 1px solid #eee; border-radius: 12px; padding: 20px; margin-bottom: 16px; }
+    .card-header { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+    .card-header img { width: 32px; height: 32px; }
+    .card-header h2 { font-size: 16px; margin: 0; }
+    .status { font-size: 13px; padding: 4px 10px; border-radius: 20px; font-weight: 500; }
+    .status.connected { background: #e6f4ea; color: #2d7a3a; }
+    .status.pending { background: #fff3e0; color: #e65100; }
+    .btn { display: block; width: 100%; padding: 12px; border: none; border-radius: 8px; font-size: 15px; cursor: pointer; text-align: center; text-decoration: none; font-weight: 500; }
+    .btn-lark { background: #00b0f0; color: #fff; }
+    .btn-google { background: #4285f4; color: #fff; }
+    .btn:hover { opacity: 0.9; }
+    .btn:disabled { opacity: 0.5; cursor: default; }
+    .loading { text-align: center; color: #999; padding: 40px 0; }
   </style>
 </head>
 <body>
-<div class="card">
-  <div class="header">
-    <div class="logo">⬡ Assistant</div>
-    <h1>Kết nối lịch của bạn</h1>
-    <p class="subtitle">Bấm từng nút bên dưới để xác thực Lark và Google Calendar.</p>
+  <h1>🔗 Kết nối tài khoản</h1>
+  <p class="subtitle" id="greeting">Đang tải...</p>
+
+  <div id="content" style="display:none">
+    <!-- Lark Card -->
+    <div class="card">
+      <div class="card-header">
+        <div style="width:32px;height:32px;background:#00b0f0;border-radius:8px;display:flex;align-items:center;justify-content:center;color:white;font-weight:bold;font-size:14px">L</div>
+        <h2>Lark Calendar</h2>
+        <span class="status" id="lark_status">Chưa kết nối</span>
+      </div>
+      <button class="btn btn-lark" id="btn_lark" onclick="connectLark()">
+        🔵 Kết nối Lark
+      </button>
+    </div>
+
+    <!-- Google Card -->
+    <div class="card">
+      <div class="card-header">
+        <div style="width:32px;height:32px;background:#4285f4;border-radius:8px;display:flex;align-items:center;justify-content:center;color:white;font-weight:bold;font-size:14px">G</div>
+        <h2>Google Calendar</h2>
+        <span class="status" id="google_status">Chưa kết nối</span>
+      </div>
+      <button class="btn btn-google" id="btn_google" onclick="connectGoogle()">
+        🔴 Kết nối Google
+      </button>
+    </div>
   </div>
-  <div class="body" id="main-body">
-    <div id="loading" style="text-align:center;color:#60a5fa;font-size:14px;padding:20px 0">Đang tải...</div>
-  </div>
-</div>
 
-<script>
-  const params = new URLSearchParams(location.search);
-  const apiKey = params.get('token') || params.get('api_key') || '';
-  const larkParam = params.get('lark');
-  const googleParam = params.get('google');
+  <p class="loading" id="loading">Đang tải thông tin...</p>
 
-  let larkDone = larkParam === 'connected';
-  let googleDone = googleParam === 'connected';
-  let larkUrl = '';
-  let googleUrl = '';
+  <script>
+    const uid = new URLSearchParams(window.location.search).get("uid");
+    const BASE = "";
 
-  async function init() {
-    if (!apiKey) {
-      document.getElementById('main-body').innerHTML =
-        '<div class="error-box">❌ Link không hợp lệ.<br>Liên hệ admin để nhận link mới.</div>';
-      return;
-    }
-
-    // Lấy status + sinh OAuth URLs
-    try {
-      const res = await fetch('/api/auth/status?api_key=' + encodeURIComponent(apiKey));
-      const data = await res.json();
-
-      if (data.error) {
-        document.getElementById('main-body').innerHTML =
-          '<div class="error-box">❌ Tài khoản không tồn tại.<br>Liên hệ admin để kiểm tra.</div>';
+    async function loadStatus() {
+      if (!uid) {
+        document.getElementById("loading").textContent = "❌ Thiếu uid trong URL.";
         return;
       }
 
-      if (data.lark_connected) larkDone = true;
-      if (data.google_connected) googleDone = true;
+      const res = await fetch(`/api/auth/status?uid=${uid}`);
+      const data = await res.json();
 
-      // Lark OAuth URL — dùng app của user này (server tự biết qua api_key)
-      const larkAuthUrl = new URL('https://open.larksuite.com/open-apis/authen/v1/index');
-      // App ID sẽ được lấy từ server qua /api/auth/lark-url
-      const urlRes = await fetch('/api/auth/lark-url?api_key=' + encodeURIComponent(apiKey));
-      const urlData = await urlRes.json();
-      larkUrl = urlData.lark_auth_url || '';
+      if (!res.ok) {
+        document.getElementById("loading").textContent = "❌ User không tồn tại.";
+        return;
+      }
 
-      const googleAuthUrl = new URL('https://accounts.google.com/o/oauth2/v2/auth');
-      googleAuthUrl.searchParams.set('client_id', '${GOOGLE_CLIENT_ID}');
-      googleAuthUrl.searchParams.set('redirect_uri', location.origin + '/api/auth/google');
-      googleAuthUrl.searchParams.set('response_type', 'code');
-      googleAuthUrl.searchParams.set('scope', 'https://www.googleapis.com/auth/calendar.readonly');
-      googleAuthUrl.searchParams.set('access_type', 'offline');
-      googleAuthUrl.searchParams.set('prompt', 'consent');
-      googleAuthUrl.searchParams.set('state', apiKey);
-      googleUrl = googleAuthUrl.toString();
+      document.getElementById("greeting").textContent = `Xin chào, ${data.name} 👋`;
+      document.getElementById("loading").style.display = "none";
+      document.getElementById("content").style.display = "block";
 
-      render();
-    } catch(e) {
-      document.getElementById('main-body').innerHTML =
-        '<div class="error-box">❌ Lỗi kết nối server.<br>' + e.message + '</div>';
+      // Lark status
+      if (data.lark_connected) {
+        document.getElementById("lark_status").textContent = "✅ Đã kết nối";
+        document.getElementById("lark_status").className = "status connected";
+        document.getElementById("btn_lark").textContent = "🔄 Kết nối lại";
+      } else {
+        document.getElementById("lark_status").textContent = "⏳ Chưa kết nối";
+        document.getElementById("lark_status").className = "status pending";
+      }
+
+      // Google status
+      if (data.google_connected) {
+        document.getElementById("google_status").textContent = "✅ Đã kết nối";
+        document.getElementById("google_status").className = "status connected";
+        document.getElementById("btn_google").textContent = "🔄 Kết nối lại";
+      } else {
+        document.getElementById("google_status").textContent = "⏳ Chưa kết nối";
+        document.getElementById("google_status").className = "status pending";
+      }
     }
-  }
 
-  function render() {
-    document.getElementById('main-body').innerHTML = `
-      <div class="row">
-        <div class="row-left">
-          <span class="row-icon">🔵</span>
-          <div>
-            <div class="row-label">Lark Calendar</div>
-            <div class="row-status ${larkDone ? 'done' : ''}">${larkDone ? 'Đã kết nối' : 'Chưa kết nối'}</div>
-          </div>
-        </div>
-        ${larkDone
-          ? '<span class="checkmark">✓</span>'
-          : `<a href="${larkUrl}" class="connect-btn">Kết nối</a>`}
-      </div>
-      <div class="divider"></div>
-      <div class="row">
-        <div class="row-left">
-          <span class="row-icon">🔴</span>
-          <div>
-            <div class="row-label">Google Calendar</div>
-            <div class="row-status ${googleDone ? 'done' : ''}">${googleDone ? 'Đã kết nối' : 'Chưa kết nối'}</div>
-          </div>
-        </div>
-        ${googleDone
-          ? '<span class="checkmark">✓</span>'
-          : `<a href="${googleUrl}" class="connect-btn">Kết nối</a>`}
-      </div>
-      ${larkDone && googleDone ? `
-        <div class="success-box">
-          <p>✅ Cả hai đã kết nối thành công!</p>
-          <a href="/success.html?api_key=${encodeURIComponent(apiKey)}" class="success-btn">Lấy API Key →</a>
-        </div>
-      ` : '<p class="hint">Bấm từng nút để đăng nhập. Bạn sẽ được chuyển về đây sau khi xác thực.</p>'}
-    `;
-  }
+    async function connectLark() {
+      const res = await fetch(`/api/auth/init?uid=${uid}&service=lark`);
+      const data = await res.json();
+      if (data.url) window.location.href = data.url;
+      else alert("Lỗi: " + (data.error || "Không lấy được URL"));
+    }
 
-  init();
-</script>
+    async function connectGoogle() {
+      const res = await fetch(`/api/auth/init?uid=${uid}&service=google`);
+      const data = await res.json();
+      if (data.url) window.location.href = data.url;
+      else alert("Lỗi: " + (data.error || "Không lấy được URL"));
+    }
+
+    loadStatus();
+  </script>
 </body>
 </html>
