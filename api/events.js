@@ -39,25 +39,30 @@ export default async function handler(req, res) {
 
 async function getLarkEvents(token, start, end) {
   try {
-    const res = await fetch(
-      `https://open.larksuite.com/open-apis/calendar/v4/calendars/primary/events?start_time=${start}&end_time=${end}`,
-      { headers: { Authorization: `Bearer ${token}` } }
-    );
+    const url = `https://open.larksuite.com/open-apis/calendar/v4/calendars/primary/events?start_time=${start}&end_time=${end}`;
+    console.log("Lark URL:", url);
+    
+    const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
     const data = await res.json();
+    console.log("Lark response:", JSON.stringify(data));
+    
     return (data.data?.items || []).map(e => {
-      const startTs = parseInt(e.start_time?.timestamp) * 1000;
-      const endTs = parseInt(e.end_time?.timestamp) * 1000;
+      const startMs = parseInt(e.start_time?.timestamp) * 1000;
+      const endMs = parseInt(e.end_time?.timestamp) * 1000;
       return {
-        source: "lark",
+        source: "🔵 Lark",
         title: e.summary,
         start: parseInt(e.start_time?.timestamp),
         end: parseInt(e.end_time?.timestamp),
-        start_display: toVNTime(new Date(startTs).toISOString()),
-        end_display: toVNTime(new Date(endTs).toISOString()),
+        start_display: toVNTime(new Date(startMs).toISOString()),
+        end_display: toVNTime(new Date(endMs).toISOString()),
         description: e.description || "",
       };
     });
-  } catch { return []; }
+  } catch (e) {
+    console.error("Lark error:", e);
+    return [];
+  }
 }
 
 async function getGoogleEvents(token, start, end) {
