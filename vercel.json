@@ -3,5 +3,14 @@
     { "source": "/setup", "destination": "/public/setup.html" },
     { "source": "/success", "destination": "/public/success.html" },
     { "source": "/admin", "destination": "/public/admin.html" }
+  ],
+  "headers": [
+    {
+      "source": "/api/(.*)",
+      "headers": [
+        { "key": "Access-Control-Allow-Origin", "value": "*" },
+        { "key": "Access-Control-Allow-Methods", "value": "GET,POST,OPTIONS" }
+      ]
+    }
   ]
 }
