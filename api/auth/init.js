@@ -11,12 +11,13 @@ export default async function handler(req, res) {
   if (service === "lark") {
     if (!user.lark_app_id) return res.status(400).json({ error: "Lark App ID chưa được cấu hình" });
     const url = `https://open.larksuite.com/open-apis/authen/v1/authorize?` +
-      `client_id=${user.lark_app_id}` +
-      `&redirect_uri=${encodeURIComponent(user.lark_redirect_uri)}` +
-      `&response_type=code` +
-      `&state=${uid}`;
+        `client_id=${user.lark_app_id}` +
+        `&redirect_uri=${encodeURIComponent(user.lark_redirect_uri)}` +
+        `&response_type=code` +
+        `&scope=${encodeURIComponent("calendar:calendar:readonly calendar:calendar.event:read")}` +
+        `&state=${uid}`;
     return res.json({ url });
-  }
+    }
 
   if (service === "google") {
     if (!user.google_client_id) return res.status(400).json({ error: "Google Client ID chưa được cấu hình" });
