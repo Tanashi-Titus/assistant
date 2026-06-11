@@ -1,0 +1,69 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Assistant Calendar API",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "https://assistant-git-main-akito-s-projects2.vercel.app"
+    }
+  ],
+  "paths": {
+    "/api/events": {
+      "get": {
+        "operationId": "getCalendarEvents",
+        "summary": "Lấy lịch từ Lark và Google Calendar",
+        "parameters": [
+          {
+            "name": "api_key",
+            "in": "query",
+            "required": true,
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "start",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "integer", "description": "Unix timestamp bắt đầu" }
+          },
+          {
+            "name": "end",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "integer", "description": "Unix timestamp kết thúc" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Danh sách events từ Lark và Google",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "events": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": { "type": "string" },
+                          "title": { "type": "string" },
+                          "start_time": { "type": "integer" },
+                          "end_time": { "type": "integer" },
+                          "source": { "type": "string", "enum": ["lark", "google"] },
+                          "location": { "type": "string" }
+                        }
+                      }
+                    },
+                    "count": { "type": "integer" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
