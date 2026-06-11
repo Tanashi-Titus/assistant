@@ -12,5 +12,11 @@
         { "key": "Access-Control-Allow-Methods", "value": "GET,POST,OPTIONS" }
       ]
     }
+  ],
+  "crons": [
+    {
+      "path": "/api/cron/refresh-tokens",
+      "schedule": "0 * * * *"
+    }
   ]
 }
