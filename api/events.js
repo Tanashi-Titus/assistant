@@ -44,29 +44,52 @@ async function getLarkEvents(token, start, end) {
       { headers: { Authorization: `Bearer ${token}` } }
     );
     const data = await res.json();
-    return (data.data?.items || []).map(e => ({
-      source: "🔵 Lark",
-      title: e.summary,
-      start: parseInt(e.start_time?.timestamp),
-      end: parseInt(e.end_time?.timestamp),
-      description: e.description || "",
-    }));
+    return (data.data?.items || []).map(e => {
+      const startTs = parseInt(e.start_time?.timestamp) * 1000;
+      const endTs = parseInt(e.end_time?.timestamp) * 1000;
+      return {
+        source: "lark",
+        title: e.summary,
+        start: parseInt(e.start_time?.timestamp),
+        end: parseInt(e.end_time?.timestamp),
+        start_display: toVNTime(new Date(startTs).toISOString()),
+        end_display: toVNTime(new Date(endTs).toISOString()),
+        description: e.description || "",
+      };
+    });
   } catch { return []; }
 }
 
 async function getGoogleEvents(token, start, end) {
   try {
     const res = await fetch(
-      `https://www.googleapis.com/calendar/v3/calendars/primary/events?timeMin=${new Date(start * 1000).toISOString()}&timeMax=${new Date(end * 1000).toISOString()}&singleEvents=true&orderBy=startTime`,
+      `https://www.googleapis.com/calendar/v3/calendars/primary/events?timeMin=${new Date(start * 1000).toISOString()}&timeMax=${new Date(end * 1000).toISOString()}&singleEvents=true&orderBy=startTime&timeZone=Asia/Ho_Chi_Minh`,
       { headers: { Authorization: `Bearer ${token}` } }
     );
     const data = await res.json();
-    return (data.items || []).map(e => ({
-      source: "🔴 Google",
-      title: e.summary,
-      start: Math.floor(new Date(e.start.dateTime || e.start.date).getTime() / 1000),
-      end: Math.floor(new Date(e.end.dateTime || e.end.date).getTime() / 1000),
-      description: e.description || "",
-    }));
+    return (data.items || []).map(e => {
+      const startDt = e.start.dateTime || e.start.date;
+      const endDt = e.end.dateTime || e.end.date;
+      return {
+        source: "google",
+        title: e.summary,
+        start: Math.floor(new Date(startDt).getTime() / 1000),
+        end: Math.floor(new Date(endDt).getTime() / 1000),
+        start_display: toVNTime(startDt),
+        end_display: toVNTime(endDt),
+        description: e.description || "",
+      };
+    });
   } catch { return []; }
+}
+
+function toVNTime(dateStr) {
+  return new Date(dateStr).toLocaleString("vi-VN", {
+    timeZone: "Asia/Ho_Chi_Minh",
+    hour: "2-digit",
+    minute: "2-digit",
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  });
 }
