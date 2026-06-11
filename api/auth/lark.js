@@ -1,61 +1,38 @@
 import { neon } from "@neondatabase/serverless";
 
-const sql = neon(process.env.DATABASE_URL);
-
 export default async function handler(req, res) {
-  const { code, state } = req.query;
+  const { code, state } = req.query; // state = user id
+  if (!code || !state) return res.status(400).json({ error: "Missing code or state" });
 
-  if (!code) return res.status(400).json({ error: "Missing code" });
+  const sql = neon(process.env.DATABASE_URL);
 
-  try {
-    // Lấy lark_app_id/secret của user này
-    const users = await sql`
-      SELECT id, lark_app_id, lark_app_secret
-      FROM users WHERE api_key = ${state}
-    `;
+  const [user] = await sql`SELECT * FROM users WHERE id = ${state}`;
+  if (!user) return res.status(404).json({ error: "User not found" });
 
-    if (users.length === 0) {
-      return res.status(404).json({ error: "User not found" });
-    }
+  // Dùng App credentials của chính user đó
+  const tokenRes = await fetch("https://open.larksuite.com/open-apis/authen/v2/oauth/token", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      grant_type: "authorization_code",
+      client_id: user.lark_app_id,
+      client_secret: user.lark_app_secret,
+      code,
+      redirect_uri: user.lark_redirect_uri,
+    }),
+  });
 
-    const user = users[0];
-    const appId = user.lark_app_id;
-    const appSecret = user.lark_app_secret;
+  const { data } = await tokenRes.json();
+  if (!data?.access_token) return res.status(400).json({ error: "Lark auth failed" });
 
-    if (!appId || !appSecret) {
-      return res.status(400).json({ error: "User chưa có Lark App ID/Secret" });
-    }
+  await sql`
+    UPDATE users SET
+      lark_access_token = ${data.access_token},
+      lark_refresh_token = ${data.refresh_token},
+      lark_token_expires_at = ${Date.now() + data.expires_in * 1000},
+      lark_connected = true
+    WHERE id = ${state}
+  `;
 
-    const tokenRes = await fetch("https://open.larksuite.com/open-apis/authen/v1/access_token", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        grant_type: "authorization_code",
-        code,
-        app_id: appId,
-        app_secret: appSecret,
-      }),
-    });
-
-    const tokenData = await tokenRes.json();
-    if (tokenData.code !== 0) {
-      return res.status(400).json({ error: "Lark OAuth failed", detail: tokenData.msg });
-    }
-
-    const { access_token, refresh_token, expires_in } = tokenData.data;
-    const expiresAt = Date.now() + expires_in * 1000;
-
-    await sql`
-      UPDATE users SET
-        lark_access_token = ${access_token},
-        lark_refresh_token = ${refresh_token},
-        lark_token_expires_at = ${expiresAt}
-      WHERE api_key = ${state}
-    `;
-
-    res.redirect(`/success.html?lark=connected&api_key=${encodeURIComponent(state)}`);
-  } catch (err) {
-    console.error("Lark callback error:", err);
-    res.status(500).json({ error: "Internal server error" });
-  }
+  res.redirect(`/success.html?uid=${state}&service=lark`);
 }

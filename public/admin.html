@@ -1,147 +1,110 @@
-import { neon } from "@neondatabase/serverless";
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <title>Admin — Thêm User</title>
+  <style>
+    body { font-family: sans-serif; max-width: 600px; margin: 60px auto; padding: 0 20px; }
+    h1 { font-size: 22px; margin-bottom: 24px; }
+    label { display: block; margin-bottom: 4px; font-size: 14px; color: #555; }
+    input { width: 100%; padding: 10px; margin-bottom: 16px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; box-sizing: border-box; }
+    button { width: 100%; padding: 12px; background: #000; color: #fff; border: none; border-radius: 6px; font-size: 16px; cursor: pointer; }
+    button:hover { background: #333; }
+    .result { margin-top: 24px; padding: 16px; background: #f5f5f5; border-radius: 8px; display: none; }
+    .result h3 { margin: 0 0 12px; }
+    .result p { margin: 6px 0; font-size: 14px; }
+    .copy-btn { background: #fff; border: 1px solid #ddd; padding: 4px 10px; border-radius: 4px; cursor: pointer; font-size: 12px; margin-left: 8px; }
+    .error { color: red; margin-top: 12px; }
+    .divider { border: none; border-top: 1px solid #eee; margin: 20px 0; }
+  </style>
+</head>
+<body>
+  <h1>➕ Thêm User mới</h1>
 
-const sql = neon(process.env.DATABASE_URL);
+  <label>Admin Key *</label>
+  <input type="password" id="admin_key" placeholder="Nhập admin key">
 
-export default async function handler(req, res) {
-  const { api_key, start, end } = req.query;
+  <hr class="divider">
 
-  if (!api_key) return res.status(401).json({ error: "Missing api_key" });
+  <label>Tên Giám đốc *</label>
+  <input type="text" id="name" placeholder="Nguyễn Văn A">
 
-  const users = await sql`
-    SELECT u.*,
-      array_agg(tc.tool_name) FILTER (WHERE tc.enabled = true) AS enabled_tools
-    FROM users u
-    LEFT JOIN tool_config tc ON tc.user_id = u.id
-    WHERE u.api_key = ${api_key}
-    GROUP BY u.id
-  `;
+  <label>Lark App ID</label>
+  <input type="text" id="lark_app_id" placeholder="cli_xxxxxxxx">
 
-  if (users.length === 0) return res.status(401).json({ error: "Invalid api_key" });
+  <label>Lark App Secret</label>
+  <input type="password" id="lark_app_secret" placeholder="Lark App Secret">
 
-  const user = users[0];
-  const enabledTools = user.enabled_tools || [];
-  const now = Math.floor(Date.now() / 1000);
-  const startTs = start ? parseInt(start) : now;
-  const endTs = end ? parseInt(end) : now + 7 * 24 * 3600;
+  <label>Google Client ID</label>
+  <input type="text" id="google_client_id" placeholder="xxxxxx.apps.googleusercontent.com">
 
-  const results = await Promise.allSettled([
-    enabledTools.includes("lark_calendar")
-      ? fetchLarkEvents(user, startTs, endTs)
-      : Promise.resolve([]),
-    enabledTools.includes("google_calendar")
-      ? fetchGoogleEvents(user, startTs, endTs)
-      : Promise.resolve([]),
-  ]);
+  <label>Google Client Secret</label>
+  <input type="password" id="google_client_secret" placeholder="GOCSPX-xxxxxxxx">
 
-  const larkEvents = results[0].status === "fulfilled" ? results[0].value : [];
-  const googleEvents = results[1].status === "fulfilled" ? results[1].value : [];
-  const allEvents = [...larkEvents, ...googleEvents].sort((a, b) => a.start_time - b.start_time);
+  <button onclick="createUser()">Tạo User</button>
+  <p class="error" id="error"></p>
 
-  return res.status(200).json({
-    events: allEvents,
-    count: allEvents.length,
-    period: { start: startTs, end: endTs },
-  });
-}
+  <div class="result" id="result">
+    <h3>✅ Tạo thành công!</h3>
+    <p><b>Tên:</b> <span id="r_name"></span></p>
+    <p><b>User ID:</b> <span id="r_uid"></span></p>
+    <p>
+      <b>API Key:</b> <span id="r_key"></span>
+      <button class="copy-btn" onclick="copy('r_key')">Copy</button>
+    </p>
+    <p>
+      <b>Setup URL:</b> <a id="r_url" href="#" target="_blank">Mở link</a>
+      <button class="copy-btn" onclick="copyText(document.getElementById('r_url').href)">Copy</button>
+    </p>
+  </div>
 
-// ── LARK ─────────────────────────────────────────────────────────────────────
+  <script>
+    async function createUser() {
+      document.getElementById("error").textContent = "";
+      document.getElementById("result").style.display = "none";
 
-async function fetchLarkEvents(user, startTs, endTs) {
-  let accessToken = user.lark_access_token;
-  if (!accessToken) return [];
-  if (Date.now() > user.lark_token_expires_at - 60000) {
-    accessToken = await refreshLarkToken(user);
-  }
-  const res = await fetch(
-    `https://open.larksuite.com/open-apis/calendar/v4/calendars/primary/events?start_time=${startTs}&end_time=${endTs}`,
-    { headers: { Authorization: `Bearer ${accessToken}` } }
-  );
-  const data = await res.json();
-  if (data.code !== 0) return [];
-  return (data.data?.items || []).map((e) => ({
-    id: e.event_id,
-    title: e.summary || "(Không có tiêu đề)",
-    start_time: parseInt(e.start_time?.timestamp || 0),
-    end_time: parseInt(e.end_time?.timestamp || 0),
-    source: "lark",
-    location: e.location?.name || null,
-  }));
-}
+      const body = {
+        name: document.getElementById("name").value,
+        lark_app_id: document.getElementById("lark_app_id").value,
+        lark_app_secret: document.getElementById("lark_app_secret").value,
+        google_client_id: document.getElementById("google_client_id").value,
+        google_client_secret: document.getElementById("google_client_secret").value,
+      };
 
-async function refreshLarkToken(user) {
-  // Dùng lark_app_id/secret của từng user
-  const appId = user.lark_app_id;
-  const appSecret = user.lark_app_secret;
+      if (!body.name) {
+        document.getElementById("error").textContent = "Vui lòng nhập tên.";
+        return;
+      }
 
-  const res = await fetch("https://open.larksuite.com/open-apis/authen/v1/refresh_access_token", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      grant_type: "refresh_token",
-      refresh_token: user.lark_refresh_token,
-      app_id: appId,
-      app_secret: appSecret,
-    }),
-  });
-  const data = await res.json();
-  if (data.code !== 0) throw new Error("Lark refresh failed");
-  const { access_token, refresh_token, expires_in } = data.data;
-  const expiresAt = Date.now() + expires_in * 1000;
-  await sql`
-    UPDATE users SET
-      lark_access_token = ${access_token},
-      lark_refresh_token = ${refresh_token},
-      lark_token_expires_at = ${expiresAt}
-    WHERE id = ${user.id}
-  `;
-  return access_token;
-}
+      const res = await fetch("/api/admin/create", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-admin-key": document.getElementById("admin_key").value,
+        },
+        body: JSON.stringify(body),
+      });
 
-// ── GOOGLE ───────────────────────────────────────────────────────────────────
+      const data = await res.json();
+      if (!res.ok) {
+        document.getElementById("error").textContent = data.error;
+        return;
+      }
 
-async function fetchGoogleEvents(user, startTs, endTs) {
-  let accessToken = user.google_access_token;
-  if (!accessToken) return [];
-  if (Date.now() > user.google_token_expires_at - 60000) {
-    accessToken = await refreshGoogleToken(user);
-  }
-  const timeMin = new Date(startTs * 1000).toISOString();
-  const timeMax = new Date(endTs * 1000).toISOString();
-  const res = await fetch(
-    `https://www.googleapis.com/calendar/v3/calendars/primary/events?timeMin=${timeMin}&timeMax=${timeMax}&singleEvents=true&orderBy=startTime`,
-    { headers: { Authorization: `Bearer ${accessToken}` } }
-  );
-  const data = await res.json();
-  if (data.error) return [];
-  return (data.items || []).map((e) => ({
-    id: e.id,
-    title: e.summary || "(Không có tiêu đề)",
-    start_time: Math.floor(new Date(e.start?.dateTime || e.start?.date).getTime() / 1000),
-    end_time: Math.floor(new Date(e.end?.dateTime || e.end?.date).getTime() / 1000),
-    source: "google",
-    location: e.location || null,
-  }));
-}
+      document.getElementById("r_name").textContent = data.name;
+      document.getElementById("r_uid").textContent = data.user_id;
+      document.getElementById("r_key").textContent = data.api_key;
+      document.getElementById("r_url").href = data.setup_url;
+      document.getElementById("r_url").textContent = data.setup_url;
+      document.getElementById("result").style.display = "block";
+    }
 
-async function refreshGoogleToken(user) {
-  const res = await fetch("https://oauth2.googleapis.com/token", {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({
-      client_id: process.env.GOOGLE_CLIENT_ID,
-      client_secret: process.env.GOOGLE_CLIENT_SECRET,
-      refresh_token: user.google_refresh_token,
-      grant_type: "refresh_token",
-    }),
-  });
-  const data = await res.json();
-  if (data.error) throw new Error("Google refresh failed");
-  const expiresAt = Date.now() + data.expires_in * 1000;
-  await sql`
-    UPDATE users SET
-      google_access_token = ${data.access_token},
-      google_token_expires_at = ${expiresAt}
-    WHERE id = ${user.id}
-  `;
-  return data.access_token;
-}
+    function copy(id) {
+      copyText(document.getElementById(id).textContent);
+    }
+    function copyText(text) {
+      navigator.clipboard.writeText(text);
+    }
+  </script>
+</body>
+</html>
