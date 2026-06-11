@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Assistant — Kết nối lịch</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      min-height: 100vh;
+      background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+      display: flex; align-items: center; justify-content: center;
+      font-family: -apple-system, 'Inter', sans-serif;
+      padding: 24px;
+    }
+    .card {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 20px;
+      width: 100%; max-width: 460px;
+      overflow: hidden;
+      box-shadow: 0 25px 50px rgba(0,0,0,0.4);
+    }
+    .header {
+      padding: 32px 36px 24px;
+      background: linear-gradient(135deg, #1e3a5f 0%, #1e293b 100%);
+      border-bottom: 1px solid #334155;
+    }
+    .logo { color: #60a5fa; font-size: 13px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; margin-bottom: 16px; }
+    h1 { font-size: 22px; font-weight: 700; color: #f1f5f9; margin-bottom: 8px; }
+    .subtitle { font-size: 14px; color: #94a3b8; line-height: 1.6; }
+    .body { padding: 28px 36px 36px; }
+    label { display: block; font-size: 11px; font-weight: 700; color: #64748b; letter-spacing: .08em; text-transform: uppercase; margin-bottom: 8px; }
+    input {
+      width: 100%; padding: 12px 16px;
+      background: #0f172a; border: 1px solid #334155; border-radius: 10px;
+      color: #f1f5f9; font-size: 15px; outline: none; margin-bottom: 16px;
+    }
+    input:focus { border-color: #3b82f6; }
+    .btn {
+      display: block; width: 100%; padding: 13px;
+      background: linear-gradient(135deg, #3b82f6, #2563eb);
+      color: #fff; border: none; border-radius: 10px;
+      font-size: 15px; font-weight: 600; cursor: pointer; text-align: center;
+    }
+    .btn:hover { opacity: .9; }
+    .error { color: #f87171; font-size: 13px; margin-bottom: 12px; display: none; }
+
+    /* Connect step */
+    #connect-step { display: none; }
+    .row {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 16px 0;
+    }
+    .row-left { display: flex; align-items: center; gap: 14px; }
+    .row-icon { font-size: 22px; }
+    .row-label { font-size: 15px; font-weight: 600; color: #f1f5f9; }
+    .row-status { font-size: 13px; margin-top: 2px; color: #94a3b8; }
+    .row-status.done { color: #22c55e; }
+    .divider { height: 1px; background: #334155; }
+    .connect-btn {
+      padding: 8px 18px;
+      background: #0f172a; border: 1px solid #334155; border-radius: 8px;
+      color: #60a5fa; font-size: 13px; font-weight: 600;
+      text-decoration: none; cursor: pointer;
+    }
+    .checkmark { color: #22c55e; font-size: 20px; font-weight: 700; }
+    .hint { margin-top: 20px; font-size: 13px; color: #475569; line-height: 1.6; text-align: center; }
+    .success-box {
+      margin-top: 20px; padding: 18px;
+      background: #0f2d1a; border: 1px solid #166534; border-radius: 12px; text-align: center;
+    }
+    .success-box p { color: #86efac; font-size: 14px; margin-bottom: 12px; }
+    .success-btn {
+      display: inline-block; padding: 10px 24px;
+      background: linear-gradient(135deg, #16a34a, #22c55e);
+      color: #fff; border-radius: 8px; font-size: 14px; font-weight: 600;
+      text-decoration: none;
+    }
+    #loading { color: #60a5fa; font-size: 13px; margin-bottom: 12px; display: none; }
+  </style>
+</head>
+<body>
+<div class="card">
+  <div class="header">
+    <div class="logo">⬡ Assistant</div>
+    <h1>Kết nối lịch của bạn</h1>
+    <p class="subtitle">Trợ lý AI sẽ truy cập Lark và Google Calendar để hỗ trợ lên kế hoạch.</p>
+  </div>
+  <div class="body">
+
+    <!-- Step 1: nhập tên -->
+    <div id="name-step">
+      <label>Tên của bạn</label>
+      <input type="text" id="name-input" placeholder="VD: Nguyễn Văn A" />
+      <p class="error" id="err"></p>
+      <p id="loading">Đang khởi tạo...</p>
+      <button class="btn" onclick="handleStart()">Bắt đầu →</button>
+    </div>
+
+    <!-- Step 2: connect OAuth -->
+    <div id="connect-step">
+      <div class="row">
+        <div class="row-left">
+          <span class="row-icon">🔵</span>
+          <div>
+            <div class="row-label">Lark Calendar</div>
+            <div class="row-status" id="lark-status">Chưa kết nối</div>
+          </div>
+        </div>
+        <span id="lark-action"></span>
+      </div>
+      <div class="divider"></div>
+      <div class="row">
+        <div class="row-left">
+          <span class="row-icon">🔴</span>
+          <div>
+            <div class="row-label">Google Calendar</div>
+            <div class="row-status" id="google-status">Chưa kết nối</div>
+          </div>
+        </div>
+        <span id="google-action"></span>
+      </div>
+
+      <div id="success-box" class="success-box" style="display:none">
+        <p>✅ Cả hai đã kết nối thành công!</p>
+        <a id="success-link" href="#" class="success-btn">Lấy API Key →</a>
+      </div>
+      <p class="hint" id="hint">Bấm từng nút để đăng nhập. Bạn sẽ được chuyển về đây sau khi xác thực.</p>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  let apiKey = '', larkUrl = '', googleUrl = '';
+  let larkDone = false, googleDone = false;
+
+  // Kiểm tra query params khi OAuth redirect về
+  const params = new URLSearchParams(location.search);
+  const returnKey = params.get('api_key');
+  const larkParam = params.get('lark');
+  const googleParam = params.get('google');
+
+  if (returnKey) {
+    apiKey = returnKey;
+    if (larkParam === 'connected') larkDone = true;
+    if (googleParam === 'connected') googleDone = true;
+    document.getElementById('name-step').style.display = 'none';
+    document.getElementById('connect-step').style.display = 'block';
+
+    // Fetch status từ server
+    fetch('/api/auth/status?api_key=' + encodeURIComponent(apiKey))
+      .then(r => r.json())
+      .then(d => {
+        if (d.lark_connected) larkDone = true;
+        if (d.google_connected) googleDone = true;
+        renderConnectStep();
+      });
+
+    renderConnectStep();
+  }
+
+  async function handleStart() {
+    const name = document.getElementById('name-input').value.trim();
+    if (!name) { showErr('Vui lòng nhập tên của bạn.'); return; }
+    showErr('');
+    document.getElementById('loading').style.display = 'block';
+
+    try {
+      const res = await fetch('/api/auth/init', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name })
+      });
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+      apiKey = data.api_key;
+      larkUrl = data.lark_auth_url;
+      googleUrl = data.google_auth_url;
+      document.getElementById('name-step').style.display = 'none';
+      document.getElementById('connect-step').style.display = 'block';
+      renderConnectStep();
+    } catch(e) {
+      showErr('Lỗi: ' + e.message);
+    } finally {
+      document.getElementById('loading').style.display = 'none';
+    }
+  }
+
+  function renderConnectStep() {
+    // Lark
+    document.getElementById('lark-status').textContent = larkDone ? 'Đã kết nối' : 'Chưa kết nối';
+    document.getElementById('lark-status').className = 'row-status' + (larkDone ? ' done' : '');
+    document.getElementById('lark-action').innerHTML = larkDone
+      ? '<span class="checkmark">✓</span>'
+      : `<a href="${larkUrl}" class="connect-btn">Kết nối</a>`;
+
+    // Google
+    document.getElementById('google-status').textContent = googleDone ? 'Đã kết nối' : 'Chưa kết nối';
+    document.getElementById('google-status').className = 'row-status' + (googleDone ? ' done' : '');
+    document.getElementById('google-action').innerHTML = googleDone
+      ? '<span class="checkmark">✓</span>'
+      : `<a href="${googleUrl}" class="connect-btn">Kết nối</a>`;
+
+    // Success
+    if (larkDone && googleDone) {
+      document.getElementById('success-box').style.display = 'block';
+      document.getElementById('success-link').href = '/success.html?api_key=' + encodeURIComponent(apiKey);
+      document.getElementById('hint').style.display = 'none';
+    }
+  }
+
+  function showErr(msg) {
+    const el = document.getElementById('err');
+    el.textContent = msg;
+    el.style.display = msg ? 'block' : 'none';
+  }
+</script>
+</body>
+</html>
