@@ -11,11 +11,5 @@
     "@upstash/redis": "^1.28.0",
     "googleapis": "^140.0.0",
     "jsonwebtoken": "^9.0.2"
-  },
-  "devDependencies": {
-    "@types/jsonwebtoken": "^9.0.5",
-    "@types/node": "^20",
-    "@types/react": "^18",
-    "typescript": "^5"
   }
 }
