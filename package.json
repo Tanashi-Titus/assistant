@@ -14,6 +14,7 @@
     "@upstash/qstash": "^2.5.0",
     "@upstash/ratelimit": "^1.1.0",
     "@upstash/redis": "^1.28.0",
+    "express": "^5.2.1",
     "googleapis": "^140.0.0",
     "jsonwebtoken": "^9.0.2"
   }
