@@ -24,7 +24,15 @@ export default async function handler(req, res) {
       : Promise.resolve([]),
   ]);
 
+  const seen = new Set();
   const merged = [...larkEvents, ...googleEvents]
+    .filter(e => {
+      if (e.error) return true;
+      const key = `${e.title?.trim()}_${e.start}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    })
     .sort((a, b) => a.start - b.start);
 
   return res.json({
