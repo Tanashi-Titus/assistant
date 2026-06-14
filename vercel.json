@@ -5,5 +5,15 @@
       "source": "/api/(.*)",
       "destination": "/api/index.js"
     }
+  ],
+  "crons": [
+    {
+      "path": "/api/cron/refresh-tokens",
+      "schedule": "0 2 * * *"
+    },
+    {
+      "path": "/api/cron/sync-calendar",
+      "schedule": "0 3 * * *"
+    }
   ]
 }

@@ -16,6 +16,8 @@ import cronSyncCalendar from '../controllers/cron/sync-calendar.js';
 
 import driveList from '../controllers/drive/list.js';
 import driveReport from '../controllers/drive/report.js';
+import driveSearch from '../controllers/drive/search.js';
+import driveSheet from '../controllers/drive/sheet.js';
 
 import eventsAttendees from '../controllers/events/attendees.js';
 import eventsCreate from '../controllers/events/create.js';
@@ -50,6 +52,8 @@ app.all('/api/cron/sync-calendar', cronSyncCalendar);
 
 app.all('/api/drive/list', driveList);
 app.all('/api/drive/report', driveReport);
+app.all('/api/drive/search', driveSearch);
+app.all('/api/drive/sheet', driveSheet);
 
 app.all('/api/events/attendees', eventsAttendees);
 app.all('/api/events/create', eventsCreate);
