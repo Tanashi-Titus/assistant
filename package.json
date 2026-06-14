@@ -2,14 +2,9 @@
   "name": "assistant",
   "version": "0.1.0",
   "private": true,
-  "scripts": {
-    "db:generate": "prisma generate",
-    "db:push": "prisma db push",
-    "db:studio": "prisma studio"
-  },
+  "scripts": {},
   "dependencies": {
     "@neondatabase/serverless": "^0.9.0",
-    "@prisma/client": "^5.10.0",
     "@upstash/qstash": "^2.5.0",
     "@upstash/ratelimit": "^1.1.0",
     "@upstash/redis": "^1.28.0",
@@ -20,7 +15,6 @@
     "@types/jsonwebtoken": "^9.0.5",
     "@types/node": "^20",
     "@types/react": "^18",
-    "prisma": "^5.10.0",
     "typescript": "^5"
   }
 }
