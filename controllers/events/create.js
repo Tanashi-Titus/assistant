@@ -14,6 +14,19 @@ export default async function handler(req, res) {
   const createTarget = target || 'both'; // "google" | "lark" | "both"
   const result = { google: null, lark: null };
 
+  // Hỗ trợ cả Unix timestamp và ISO string (VD: 2026-06-15T05:00:00+07:00)
+  const parseTime = (val) => {
+    if (typeof val === 'string' && val.includes('T')) {
+      return Math.floor(new Date(val).getTime() / 1000);
+    }
+    return parseInt(val);
+  };
+
+  const startTs = parseTime(start);
+  const endTs = parseTime(end);
+
+  if (!startTs || !endTs) return res.status(400).json({ error: 'Invalid start or end time format' });
+
   // ── Tạo trên Google Calendar ──
   if ((createTarget === 'google' || createTarget === 'both') && user.google_connected) {
     const token = await refreshGoogleToken(user);
@@ -22,8 +35,8 @@ export default async function handler(req, res) {
         summary: title,
         description: description || '',
         location: location || '',
-        start: { dateTime: new Date(start * 1000).toISOString(), timeZone: 'Asia/Ho_Chi_Minh' },
-        end: { dateTime: new Date(end * 1000).toISOString(), timeZone: 'Asia/Ho_Chi_Minh' },
+        start: { dateTime: new Date(startTs * 1000).toISOString(), timeZone: 'Asia/Ho_Chi_Minh' },
+        end: { dateTime: new Date(endTs * 1000).toISOString(), timeZone: 'Asia/Ho_Chi_Minh' },
       };
       if (attendees && attendees.length > 0) {
         gEvent.attendees = attendees.map(email => ({ email }));
@@ -48,8 +61,8 @@ export default async function handler(req, res) {
       const lEvent = {
         summary: title,
         description: description || '',
-        start_time: { timestamp: String(start) },
-        end_time: { timestamp: String(end) },
+        start_time: { timestamp: String(startTs) },
+        end_time: { timestamp: String(endTs) },
       };
 
       const lRes = await fetch('https://open.larksuite.com/open-apis/calendar/v4/calendars/primary/events', {

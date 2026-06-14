@@ -12,6 +12,18 @@ export default async function handler(req, res) {
   const sql = getDb();
   const result = { updated: null, synced: null };
 
+  // Hỗ trợ cả Unix timestamp và ISO string (VD: 2026-06-15T05:00:00+07:00)
+  const parseTime = (val) => {
+    if (!val) return undefined;
+    if (typeof val === 'string' && val.includes('T')) {
+      return Math.floor(new Date(val).getTime() / 1000);
+    }
+    return parseInt(val);
+  };
+
+  const startTs = parseTime(start);
+  const endTs = parseTime(end);
+
   // ── Update trên Google ──
   if (source === 'google' && user.google_connected) {
     const token = await refreshGoogleToken(user);
@@ -19,8 +31,8 @@ export default async function handler(req, res) {
     if (title) patch.summary = title;
     if (description !== undefined) patch.description = description;
     if (location !== undefined) patch.location = location;
-    if (start) patch.start = { dateTime: new Date(start * 1000).toISOString(), timeZone: 'Asia/Ho_Chi_Minh' };
-    if (end) patch.end = { dateTime: new Date(end * 1000).toISOString(), timeZone: 'Asia/Ho_Chi_Minh' };
+    if (startTs) patch.start = { dateTime: new Date(startTs * 1000).toISOString(), timeZone: 'Asia/Ho_Chi_Minh' };
+    if (endTs) patch.end = { dateTime: new Date(endTs * 1000).toISOString(), timeZone: 'Asia/Ho_Chi_Minh' };
 
     const gRes = await fetch(
       `https://www.googleapis.com/calendar/v3/calendars/primary/events/${event_id}`,
@@ -42,8 +54,8 @@ export default async function handler(req, res) {
         const lPatch = {};
         if (title) lPatch.summary = title;
         if (description !== undefined) lPatch.description = description;
-        if (start) lPatch.start_time = { timestamp: String(start) };
-        if (end) lPatch.end_time = { timestamp: String(end) };
+        if (startTs) lPatch.start_time = { timestamp: String(startTs) };
+        if (endTs) lPatch.end_time = { timestamp: String(endTs) };
 
         await fetch(
           `https://open.larksuite.com/open-apis/calendar/v4/calendars/primary/events/${mapping.lark_event_id}`,
@@ -64,8 +76,8 @@ export default async function handler(req, res) {
     const patch = {};
     if (title) patch.summary = title;
     if (description !== undefined) patch.description = description;
-    if (start) patch.start_time = { timestamp: String(start) };
-    if (end) patch.end_time = { timestamp: String(end) };
+    if (startTs) patch.start_time = { timestamp: String(startTs) };
+    if (endTs) patch.end_time = { timestamp: String(endTs) };
 
     const lRes = await fetch(
       `https://open.larksuite.com/open-apis/calendar/v4/calendars/primary/events/${event_id}`,
@@ -87,8 +99,8 @@ export default async function handler(req, res) {
         const gPatch = {};
         if (title) gPatch.summary = title;
         if (description !== undefined) gPatch.description = description;
-        if (start) gPatch.start = { dateTime: new Date(start * 1000).toISOString(), timeZone: 'Asia/Ho_Chi_Minh' };
-        if (end) gPatch.end = { dateTime: new Date(end * 1000).toISOString(), timeZone: 'Asia/Ho_Chi_Minh' };
+        if (startTs) gPatch.start = { dateTime: new Date(startTs * 1000).toISOString(), timeZone: 'Asia/Ho_Chi_Minh' };
+        if (endTs) gPatch.end = { dateTime: new Date(endTs * 1000).toISOString(), timeZone: 'Asia/Ho_Chi_Minh' };
 
         await fetch(
           `https://www.googleapis.com/calendar/v3/calendars/primary/events/${mapping.google_event_id}`,
