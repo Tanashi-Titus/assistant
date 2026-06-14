@@ -1,2 +1,2 @@
 # assistant
-assistant for tnt group
+assistant for TNT ecom
