@@ -1,4 +1,4 @@
-import { getUserById, refreshGoogleToken } from '../../lib/db.js';
+import { getUserById, refreshGoogleToken } from '../../../lib/db.js';
 
 export default async function handler(req, res) {
   const { uid, folder_id, period, date } = req.query;
