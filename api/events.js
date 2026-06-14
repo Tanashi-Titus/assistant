@@ -1,11 +1,11 @@
-import { getUserByApiKey, refreshGoogleToken, refreshLarkToken, getLarkTenantToken, toVNTime } from '../lib/db.js';
+import { getUserById, refreshGoogleToken, refreshLarkToken, getLarkTenantToken, toVNTime } from '../lib/db.js';
 
 export default async function handler(req, res) {
-  const { api_key, start, end } = req.query;
-  if (!api_key) return res.status(400).json({ error: "Missing api_key" });
+  const { uid, start, end } = req.query;
+  if (!uid) return res.status(400).json({ error: "Missing uid" });
 
-  const user = await getUserByApiKey(api_key);
-  if (!user) return res.status(401).json({ error: "Invalid api_key" });
+  const user = await getUserById(uid);
+  if (!user) return res.status(401).json({ error: "Invalid uid" });
 
   const startTs = parseInt(start) || Math.floor(Date.now() / 1000);
   const endTs = parseInt(end) || startTs + 7 * 24 * 3600;

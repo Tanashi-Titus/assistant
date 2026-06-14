@@ -1,12 +1,12 @@
-import { getUserByApiKey, refreshGoogleToken } from '../../lib/db.js';
+import { getUserById, refreshGoogleToken } from '../../lib/db.js';
 
 export default async function handler(req, res) {
-  const { api_key, folder_id, recursive } = req.query;
-  if (!api_key) return res.status(400).json({ error: 'Missing api_key' });
+  const { uid, folder_id, recursive } = req.query;
+  if (!uid) return res.status(400).json({ error: 'Missing uid' });
   if (!folder_id) return res.status(400).json({ error: 'Missing folder_id' });
 
-  const user = await getUserByApiKey(api_key);
-  if (!user) return res.status(401).json({ error: 'Invalid api_key' });
+  const user = await getUserById(uid);
+  if (!user) return res.status(401).json({ error: 'Invalid uid' });
   if (!user.google_connected) return res.status(400).json({ error: 'Google not connected' });
 
   const token = await refreshGoogleToken(user);

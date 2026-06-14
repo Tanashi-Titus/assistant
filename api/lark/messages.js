@@ -1,12 +1,12 @@
-import { getUserByApiKey, refreshLarkToken } from '../../lib/db.js';
+import { getUserById, refreshLarkToken } from '../../lib/db.js';
 
 export default async function handler(req, res) {
-  const { api_key, chat_id, limit, since } = req.query;
-  if (!api_key) return res.status(400).json({ error: 'Missing api_key' });
+  const { uid, chat_id, limit, since } = req.query;
+  if (!uid) return res.status(400).json({ error: 'Missing uid' });
   if (!chat_id) return res.status(400).json({ error: 'Missing chat_id' });
 
-  const user = await getUserByApiKey(api_key);
-  if (!user) return res.status(401).json({ error: 'Invalid api_key' });
+  const user = await getUserById(uid);
+  if (!user) return res.status(401).json({ error: 'Invalid uid' });
   if (!user.lark_connected) return res.status(400).json({ error: 'Lark not connected' });
 
   const token = await refreshLarkToken(user);

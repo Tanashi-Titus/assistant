@@ -1,14 +1,14 @@
-import { getUserByApiKey, refreshGoogleToken, refreshLarkToken, getDb, toVNTime } from '../../lib/db.js';
+import { getUserById, refreshGoogleToken, refreshLarkToken, getDb } from '../../lib/db.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  const { api_key, title, description, start, end, attendees, location, target } = req.body;
-  if (!api_key) return res.status(400).json({ error: 'Missing api_key' });
+  const { uid, title, description, start, end, attendees, location, target } = req.body;
+  if (!uid) return res.status(400).json({ error: 'Missing uid' });
   if (!title || !start || !end) return res.status(400).json({ error: 'Missing title, start, or end' });
 
-  const user = await getUserByApiKey(api_key);
-  if (!user) return res.status(401).json({ error: 'Invalid api_key' });
+  const user = await getUserById(uid);
+  if (!user) return res.status(401).json({ error: 'Invalid uid' });
 
   const sql = getDb();
   const createTarget = target || 'both'; // "google" | "lark" | "both"

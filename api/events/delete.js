@@ -1,14 +1,13 @@
-import { getUserByApiKey, refreshGoogleToken, refreshLarkToken, getDb } from '../../lib/db.js';
+import { getUserById, refreshGoogleToken, refreshLarkToken, getDb } from '../../lib/db.js';
 
 export default async function handler(req, res) {
-  if (req.method !== 'DELETE' && req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  const { api_key, event_id, source, delete_synced } = req.body;
-  if (!api_key) return res.status(400).json({ error: 'Missing api_key' });
-  if (!event_id || !source) return res.status(400).json({ error: 'Missing event_id or source' });
+  const { uid, event_id, source, delete_synced } = req.body;
+  if (!uid || !event_id || !source) return res.status(400).json({ error: 'Missing required fields' });
 
-  const user = await getUserByApiKey(api_key);
-  if (!user) return res.status(401).json({ error: 'Invalid api_key' });
+  const user = await getUserById(uid);
+  if (!user) return res.status(401).json({ error: 'Invalid uid' });
 
   const sql = getDb();
   const result = { deleted: null, synced_deleted: null };

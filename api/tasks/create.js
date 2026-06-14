@@ -1,17 +1,13 @@
-import { getUserByApiKey, refreshGoogleToken, refreshLarkToken, getDb } from '../../lib/db.js';
+import { getUserById, refreshGoogleToken, refreshLarkToken, getDb } from '../../lib/db.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  const {
-    api_key, title, description, assignee_email, assignee_name,
-    due_date, priority, create_calendar_event
-  } = req.body;
-  if (!api_key) return res.status(400).json({ error: 'Missing api_key' });
-  if (!title) return res.status(400).json({ error: 'Missing title' });
+  const { uid, title, description, assignee_email, assignee_name, due_date, priority, create_calendar_event } = req.body;
+  if (!uid || !title) return res.status(400).json({ error: 'Missing uid or title' });
 
-  const user = await getUserByApiKey(api_key);
-  if (!user) return res.status(401).json({ error: 'Invalid api_key' });
+  const user = await getUserById(uid);
+  if (!user) return res.status(401).json({ error: 'Invalid uid' });
 
   // Task = calendar event với prefix [TASK]
   const taskTitle = `[TASK] ${title}`;

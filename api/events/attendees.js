@@ -1,16 +1,15 @@
-import { getUserByApiKey, refreshGoogleToken, refreshLarkToken } from '../../lib/db.js';
+import { getUserById, refreshGoogleToken, refreshLarkToken } from '../../lib/db.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  const { api_key, event_id, source, action, attendees } = req.body;
-  if (!api_key) return res.status(400).json({ error: 'Missing api_key' });
-  if (!event_id || !source || !action || !attendees?.length) {
-    return res.status(400).json({ error: 'Missing event_id, source, action, or attendees' });
+  const { uid, event_id, source, action, attendees } = req.body;
+  if (!uid || !event_id || !source || !action || !attendees?.length) {
+    return res.status(400).json({ error: 'Missing uid, event_id, source, action, or attendees' });
   }
 
-  const user = await getUserByApiKey(api_key);
-  if (!user) return res.status(401).json({ error: 'Invalid api_key' });
+  const user = await getUserById(uid);
+  if (!user) return res.status(401).json({ error: 'Invalid uid' });
 
   // ── Google Calendar Attendees ──
   if (source === 'google' && user.google_connected) {
