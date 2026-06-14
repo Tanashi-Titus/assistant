@@ -92,7 +92,7 @@ async function syncGoogleToLark(user, googleToken, larkToken, since, sql) {
 // ── Lark → Google ────────────────────────────────────────────
 
 async function syncLarkToGoogle(user, googleToken, larkToken, since, sql) {
-  const sinceTs = Math.floor(new Date(since).getTime() / 1000);
+  const sinceTs = Math.floor((Date.now() - 365 * 24 * 60 * 60_000) / 1000);
 
   const r = await fetch(
     `https://open.larksuite.com/open-apis/calendar/v4/calendars/primary/events?start_time=${sinceTs}`,
