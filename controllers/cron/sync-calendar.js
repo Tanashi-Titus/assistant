@@ -54,9 +54,9 @@ async function syncUser(user, sql) {
 // ── Google → Lark ────────────────────────────────────────────
 
 async function syncGoogleToLark(user, googleToken, larkToken, since, sql) {
-  const futureTs = Math.floor((Date.now() + 365 * 24 * 60 * 60_000) / 1000);
+  const timeMax = new Date(Date.now() + 365 * 24 * 60 * 60_000).toISOString();
   const r = await fetch(
-    `https://open.larksuite.com/open-apis/calendar/v4/calendars/primary/events?start_time=${sinceTs}&end_time=${futureTs}`,
+    `https://www.googleapis.com/calendar/v3/calendars/primary/events?timeMin=${since}&timeMax=${timeMax}&singleEvents=true&orderBy=startTime`,
     { headers: { Authorization: `Bearer ${googleToken}` } }
   );
   const { items = [] } = await r.json();
