@@ -40,8 +40,7 @@ async function syncUser(user, sql) {
     SELECT val FROM sync_state
     WHERE user_id = ${user.id} AND key = 'synced_until'
   `;
-  const syncedUntil = state ? Number(state.val) : Date.now() - 10 * 60_000;
-  const since = new Date(syncedUntil).toISOString();
+  const since = new Date(Date.now() - 365 * 24 * 60 * 60_000).toISOString();
 
   const googleToken = await refreshGoogleToken(user);
   const larkToken = await refreshLarkToken(user);
@@ -50,19 +49,14 @@ async function syncUser(user, sql) {
     syncGoogleToLark(user, googleToken, larkToken, since, sql),
     syncLarkToGoogle(user, googleToken, larkToken, since, sql),
   ]);
-
-  await sql`
-    INSERT INTO sync_state (user_id, key, val)
-    VALUES (${user.id}, 'synced_until', ${String(Date.now())})
-    ON CONFLICT (user_id, key) DO UPDATE SET val = EXCLUDED.val
-  `;
 }
 
 // ── Google → Lark ────────────────────────────────────────────
 
 async function syncGoogleToLark(user, googleToken, larkToken, since, sql) {
+  const futureTs = Math.floor((Date.now() + 365 * 24 * 60 * 60_000) / 1000);
   const r = await fetch(
-    `https://www.googleapis.com/calendar/v3/calendars/primary/events?updatedMin=${since}&singleEvents=true&orderBy=updated`,
+    `https://open.larksuite.com/open-apis/calendar/v4/calendars/primary/events?start_time=${sinceTs}&end_time=${futureTs}`,
     { headers: { Authorization: `Bearer ${googleToken}` } }
   );
   const { items = [] } = await r.json();
