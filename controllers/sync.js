@@ -42,7 +42,8 @@ async function syncUser(user, sql) {
     SELECT val FROM sync_state
     WHERE user_id = ${user.id} AND key = 'synced_until'
   `;
-  const syncedUntil = state ? Number(state.val) : Date.now() - 10 * 60_000;
+  const initialSync = !state;
+  const syncedUntil = state ? Number(state.val) : Date.now() - 5 * 365 * 24 * 3600 * 1000; // 5 năm trước cho lần đầu
   const since = new Date(syncedUntil).toISOString();
 
   // Refresh token nếu sắp hết hạn
@@ -50,8 +51,8 @@ async function syncUser(user, sql) {
   const larkToken = await refreshLarkToken(user);
 
   await Promise.all([
-    syncGoogleToLark(user, googleToken, larkToken, since, sql),
-    syncLarkToGoogle(user, googleToken, larkToken, since, sql),
+    syncGoogleToLark(user, googleToken, larkToken, since, initialSync, sql),
+    syncLarkToGoogle(user, googleToken, larkToken, since, initialSync, sql),
   ]);
 
   // Cập nhật thời điểm sync
@@ -64,9 +65,13 @@ async function syncUser(user, sql) {
 
 // ─── Google → Lark ───────────────────────────────────────────
 
-async function syncGoogleToLark(user, googleToken, larkToken, since, sql) {
+async function syncGoogleToLark(user, googleToken, larkToken, since, initialSync, sql) {
+  const timeQuery = initialSync 
+    ? `timeMin=${since}&orderBy=startTime` // Lần đầu: lấy toàn bộ lịch
+    : `updatedMin=${since}&orderBy=updated`; // Các lần sau: chỉ lấy lịch vừa sửa đổi
+
   const res = await fetch(
-    `https://www.googleapis.com/calendar/v3/calendars/primary/events?updatedMin=${since}&singleEvents=true&orderBy=updated`,
+    `https://www.googleapis.com/calendar/v3/calendars/primary/events?${timeQuery}&singleEvents=true&maxResults=2500`,
     { headers: { Authorization: `Bearer ${googleToken}` } }
   );
   const { items = [] } = await res.json();
@@ -105,11 +110,11 @@ async function syncGoogleToLark(user, googleToken, larkToken, since, sql) {
 
 // ─── Lark → Google ───────────────────────────────────────────
 
-async function syncLarkToGoogle(user, googleToken, larkToken, since, sql) {
+async function syncLarkToGoogle(user, googleToken, larkToken, since, initialSync, sql) {
   const sinceTs = Math.floor(new Date(since).getTime() / 1000);
 
   const res = await fetch(
-    `https://open.larksuite.com/open-apis/calendar/v4/calendars/primary/events?start_time=${sinceTs}`,
+    `https://open.larksuite.com/open-apis/calendar/v4/calendars/primary/events?start_time=${sinceTs}&page_size=500`,
     { headers: { Authorization: `Bearer ${larkToken}` } }
   );
   const { data } = await res.json();

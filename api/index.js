@@ -13,6 +13,7 @@ import authStatus from '../controllers/auth/status.js';
 
 import cronRefreshTokens from '../controllers/cron/refresh-tokens.js';
 import cronSyncCalendar from '../controllers/cron/sync-calendar.js';
+import resetSync from '../controllers/cron/reset-sync.js';
 
 import driveList from '../controllers/drive/list.js';
 import driveReport from '../controllers/drive/report.js';
@@ -48,6 +49,7 @@ app.all('/api/auth/lark', authLark);
 app.all('/api/auth/status', authStatus);
 
 app.all('/api/cron/refresh-tokens', cronRefreshTokens);
+app.all('/api/cron/reset-sync', resetSync);
 app.all('/api/cron/sync-calendar', cronSyncCalendar);
 
 app.all('/api/drive/list', driveList);

@@ -1,9 +1,8 @@
 import { getUserById, refreshGoogleToken } from '../../lib/db.js';
 
 export default async function handler(req, res) {
-  const { uid, folder_id, recursive } = req.query;
+  const { uid, folder_id, folder_name, recursive } = req.query;
   if (!uid) return res.status(400).json({ error: 'Missing uid' });
-  if (!folder_id) return res.status(400).json({ error: 'Missing folder_id' });
 
   const user = await getUserById(uid);
   if (!user) return res.status(401).json({ error: 'Invalid uid' });
@@ -13,20 +12,40 @@ export default async function handler(req, res) {
   if (!token) return res.status(500).json({ error: 'Failed to get Google token' });
 
   try {
-    const files = await listFolder(token, folder_id, recursive === 'true');
+    let targetFolderId = folder_id;
+    let targetFolderName = 'Unknown';
 
-    // Lấy tên folder
-    const folderRes = await fetch(
-      `https://www.googleapis.com/drive/v3/files/${folder_id}?fields=name`,
-      { headers: { Authorization: `Bearer ${token}` } }
-    );
-    const folderData = await folderRes.json();
+    if (folder_name) {
+      const q = `name = '${folder_name.replace(/'/g, "\\'")}' and mimeType = 'application/vnd.google-apps.folder' and trashed = false`;
+      const searchRes = await fetch(
+        `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(q)}&fields=files(id,name)&pageSize=1`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      const searchData = await searchRes.json();
+      if (searchData.files && searchData.files.length > 0) {
+        targetFolderId = searchData.files[0].id;
+        targetFolderName = searchData.files[0].name;
+      } else {
+        return res.status(404).json({ error: 'Không tìm thấy thư mục nào có tên: ' + folder_name });
+      }
+    } else if (targetFolderId) {
+      const folderRes = await fetch(
+        `https://www.googleapis.com/drive/v3/files/${targetFolderId}?fields=name`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      const folderData = await folderRes.json();
+      targetFolderName = folderData.name || 'Unknown';
+    }
+
+    if (!targetFolderId) return res.status(400).json({ error: 'Bạn phải cung cấp folder_id hoặc folder_name' });
+
+    const files = await listFolder(token, targetFolderId, recursive === 'true');
 
     const totalSize = files.reduce((sum, f) => sum + (f.size_bytes || 0), 0);
 
     return res.json({
-      folder_id,
-      folder_name: folderData.name || 'Unknown',
+      folder_id: targetFolderId,
+      folder_name: targetFolderName,
       total_files: files.length,
       total_size: formatBytes(totalSize),
       files: files.map(f => ({
