@@ -1,4 +1,4 @@
-import { getDb, refreshGoogleToken, refreshLarkToken } from '../../lib/db.js';
+import { getDb, refreshGoogleToken, getLarkTenantToken } from '../../lib/db.js';
 
 export const config = { maxDuration: 60 };
 
@@ -43,7 +43,7 @@ async function syncUser(user, sql) {
   const since = new Date(Date.now() - 365 * 24 * 60 * 60_000).toISOString();
 
   const googleToken = await refreshGoogleToken(user);
-  const larkToken = await refreshLarkToken(user);
+  const larkToken = await getLarkTenantToken(user);
 
   await Promise.all([
     syncGoogleToLark(user, googleToken, larkToken, since, sql),

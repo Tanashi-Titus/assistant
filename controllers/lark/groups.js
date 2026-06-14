@@ -1,4 +1,4 @@
-import { getUserById, refreshLarkToken } from '../../lib/db.js';
+import { getUserById, getLarkTenantToken } from '../../lib/db.js';
 
 export default async function handler(req, res) {
   const { uid, keyword } = req.query;
@@ -8,8 +8,8 @@ export default async function handler(req, res) {
   if (!user) return res.status(401).json({ error: 'Invalid uid' });
   if (!user.lark_connected) return res.status(400).json({ error: 'Lark not connected' });
 
-  const token = await refreshLarkToken(user);
-  if (!token) return res.status(500).json({ error: 'Failed to get Lark token' });
+  const token = await getLarkTenantToken(user);
+  if (!token) return res.status(500).json({ error: 'Failed to get Lark tenant token' });
 
   try {
     const groups = [];

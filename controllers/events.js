@@ -1,4 +1,4 @@
-import { getUserById, refreshGoogleToken, refreshLarkToken, getLarkTenantToken, toVNTime } from '../lib/db.js';
+import { getUserById, refreshGoogleToken, getLarkTenantToken, toVNTime } from '../lib/db.js';
 
 export default async function handler(req, res) {
   const { uid, start, end } = req.query;
@@ -11,7 +11,7 @@ export default async function handler(req, res) {
   const endTs = parseInt(end) || startTs + 7 * 24 * 3600;
 
   const [larkToken, googleToken] = await Promise.all([
-    user.lark_connected ? refreshLarkToken(user) : null,
+    user.lark_connected ? getLarkTenantToken(user) : null,
     user.google_connected ? refreshGoogleToken(user) : null,
   ]);
 
