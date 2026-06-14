@@ -1,4 +1,4 @@
-import { getDb, refreshGoogleToken, refreshLarkToken } from '../../lib/db.js';
+import { getDb, refreshGoogleToken, refreshLarkToken } from '../lib/db.js';
 
 export const config = { maxDuration: 60 };
 

@@ -1,4 +1,4 @@
-import { getUserById, refreshGoogleToken, refreshLarkToken, getLarkTenantToken, toVNTime } from '../../lib/db.js';
+import { getUserById, refreshGoogleToken, refreshLarkToken, getLarkTenantToken, toVNTime } from '../lib/db.js';
 
 export default async function handler(req, res) {
   const { uid, start, end } = req.query;
