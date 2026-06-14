@@ -45,6 +45,11 @@ async function getLarkEvents(token, start, end) {
       { headers: { Authorization: `Bearer ${token}` } }
     );
     const data = await res.json();
+    
+    if (!res.ok || data.code !== 0) {
+      console.error("Lark API Error:", data);
+      return [{ source: "🔵 Lark", error: "Lỗi kết nối (Cần đăng nhập lại)", detail: data.msg || "Unauthorized" }];
+    }
 
     return (data.data?.items || []).map(e => {
       const startMs = parseInt(e.start_time?.timestamp) * 1000;
@@ -63,7 +68,7 @@ async function getLarkEvents(token, start, end) {
     });
   } catch (e) {
     console.error("Lark events error:", e);
-    return [];
+    return [{ source: "🔵 Lark", error: "Lỗi hệ thống", detail: e.message }];
   }
 }
 
@@ -76,6 +81,12 @@ async function getGoogleEvents(token, start, end) {
       { headers: { Authorization: `Bearer ${token}` } }
     );
     const data = await res.json();
+    
+    if (!res.ok) {
+      console.error("Google API Error:", data);
+      return [{ source: "🔴 Google", error: "Lỗi kết nối (Cần đăng nhập lại)", detail: data.error?.message || "Unauthorized" }];
+    }
+    
     return (data.items || []).map(e => {
       const startDt = e.start.dateTime || e.start.date;
       const endDt = e.end.dateTime || e.end.date;
@@ -92,5 +103,8 @@ async function getGoogleEvents(token, start, end) {
         link: e.htmlLink || "",
       };
     });
-  } catch { return []; }
+  } catch (e) { 
+    console.error("Google events error:", e);
+    return [{ source: "🔴 Google", error: "Lỗi hệ thống", detail: e.message }]; 
+  }
 }

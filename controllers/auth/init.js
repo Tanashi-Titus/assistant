@@ -13,10 +13,8 @@ export default async function handler(req, res) {
     // Scopes: đọc/ghi calendar + đọc group chat + offline refresh
     const larkScopes = [
       "offline_access",
+      "calendar:calendar",
       "calendar:calendar:readonly",
-      "calendar:calendar.event:read",
-      "calendar:calendar.event:write",
-      "calendar:calendar.event:delete",
       "im:chat:readonly",
       "im:message:readonly",
     ].join(" ");
