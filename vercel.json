@@ -1,16 +1,20 @@
 {
-  "rewrites": [
-    { "source": "/setup", "destination": "/public/setup.html" },
-    { "source": "/success", "destination": "/public/success.html" },
-    { "source": "/admin", "destination": "/public/admin.html" }
-  ],
-  "headers": [
+  "crons": [
     {
-      "source": "/api/(.*)",
-      "headers": [
-        { "key": "Access-Control-Allow-Origin", "value": "*" },
-        { "key": "Access-Control-Allow-Methods", "value": "GET,POST,OPTIONS" }
-      ]
+      "path": "/api/cron/index-drive",
+      "schedule": "0 1 * * *"
+    },
+    {
+      "path": "/api/cron/refresh-tokens",
+      "schedule": "0 */6 * * *"
+    },
+    {
+      "path": "/api/cron/sync-calendar",
+      "schedule": "*/15 * * * *"
+    },
+    {
+      "path": "/api/cron/renew-webhooks",
+      "schedule": "0 0 * * *"
     }
   ]
 }

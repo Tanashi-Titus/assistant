@@ -1,14 +1,14 @@
-import { neon } from '@neondatabase/serverless';
+import { getDb, refreshGoogleToken, refreshLarkToken } from '../lib/db.js';
 
 export const config = { maxDuration: 60 };
-
-const sql = neon(process.env.DATABASE_URL);
 
 export default async function handler(req, res) {
   // Bảo vệ endpoint
   if (req.headers['x-cron-secret'] !== process.env.CRON_SECRET) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
+
+  const sql = getDb();
 
   // Lấy tất cả user đã kết nối cả 2 bên
   const users = await sql`
@@ -23,7 +23,7 @@ export default async function handler(req, res) {
 
   for (const user of users) {
     try {
-      await syncUser(user);
+      await syncUser(user, sql);
       results.push({ user_id: user.id, ok: true });
     } catch (err) {
       console.error(`Sync failed for user ${user.id}:`, err.message);
@@ -36,7 +36,7 @@ export default async function handler(req, res) {
 
 // ─── Sync 1 user ─────────────────────────────────────────────
 
-async function syncUser(user) {
+async function syncUser(user, sql) {
   // Lấy thời điểm sync lần trước
   const [state] = await sql`
     SELECT val FROM sync_state
@@ -46,12 +46,12 @@ async function syncUser(user) {
   const since = new Date(syncedUntil).toISOString();
 
   // Refresh token nếu sắp hết hạn
-  const googleToken = await getGoogleToken(user);
-  const larkToken = await getLarkToken(user);
+  const googleToken = await refreshGoogleToken(user);
+  const larkToken = await refreshLarkToken(user);
 
   await Promise.all([
-    syncGoogleToLark(user, googleToken, larkToken, since),
-    syncLarkToGoogle(user, googleToken, larkToken, since),
+    syncGoogleToLark(user, googleToken, larkToken, since, sql),
+    syncLarkToGoogle(user, googleToken, larkToken, since, sql),
   ]);
 
   // Cập nhật thời điểm sync
@@ -64,7 +64,7 @@ async function syncUser(user) {
 
 // ─── Google → Lark ───────────────────────────────────────────
 
-async function syncGoogleToLark(user, googleToken, larkToken, since) {
+async function syncGoogleToLark(user, googleToken, larkToken, since, sql) {
   const res = await fetch(
     `https://www.googleapis.com/calendar/v3/calendars/primary/events?updatedMin=${since}&singleEvents=true&orderBy=updated`,
     { headers: { Authorization: `Bearer ${googleToken}` } }
@@ -82,16 +82,16 @@ async function syncGoogleToLark(user, googleToken, larkToken, since) {
 
     if (event.status === 'cancelled') {
       if (mapping) {
-        await larkDeleteEvent(user, larkToken, mapping.lark_event_id);
+        await larkDeleteEvent(larkToken, mapping.lark_event_id);
         await sql`
           DELETE FROM event_map
           WHERE user_id = ${user.id} AND google_event_id = ${event.id}
         `;
       }
     } else if (mapping) {
-      await larkUpdateEvent(user, larkToken, mapping.lark_event_id, googleToLark(event));
+      await larkUpdateEvent(larkToken, mapping.lark_event_id, googleToLark(event));
     } else {
-      const larkEvent = await larkCreateEvent(user, larkToken, googleToLark(event));
+      const larkEvent = await larkCreateEvent(larkToken, googleToLark(event));
       if (larkEvent?.event_id) {
         await sql`
           INSERT INTO event_map (user_id, google_event_id, lark_event_id, synced_at)
@@ -105,9 +105,8 @@ async function syncGoogleToLark(user, googleToken, larkToken, since) {
 
 // ─── Lark → Google ───────────────────────────────────────────
 
-async function syncLarkToGoogle(user, googleToken, larkToken, since) {
+async function syncLarkToGoogle(user, googleToken, larkToken, since, sql) {
   const sinceTs = Math.floor(new Date(since).getTime() / 1000);
-  const calId = user.lark_user_id; // dùng primary calendar
 
   const res = await fetch(
     `https://open.larksuite.com/open-apis/calendar/v4/calendars/primary/events?start_time=${sinceTs}`,
@@ -168,68 +167,6 @@ function larkToGoogle(e) {
   };
 }
 
-// ─── Google token ────────────────────────────────────────────
-
-async function getGoogleToken(user) {
-  // Còn hạn thì dùng luôn
-  if (user.google_access_token && user.google_token_expires_at > Date.now() + 60_000) {
-    return user.google_access_token;
-  }
-
-  // Hết hạn thì refresh
-  const res = await fetch('https://oauth2.googleapis.com/token', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({
-      client_id:     user.google_client_id,
-      client_secret: user.google_client_secret,
-      refresh_token: user.google_refresh_token,
-      grant_type:    'refresh_token',
-    })
-  });
-  const { access_token, expires_in } = await res.json();
-
-  // Lưu token mới vào DB
-  await sql`
-    UPDATE users SET
-      google_access_token = ${access_token},
-      google_token_expires_at = ${Date.now() + expires_in * 1000}
-    WHERE id = ${user.id}
-  `;
-
-  return access_token;
-}
-
-// ─── Lark token ──────────────────────────────────────────────
-
-async function getLarkToken(user) {
-  if (user.lark_access_token && user.lark_token_expires_at > Date.now() + 60_000) {
-    return user.lark_access_token;
-  }
-
-  const res = await fetch('https://open.larksuite.com/open-apis/authen/v1/refresh_access_token', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      grant_type:    'refresh_token',
-      refresh_token: user.lark_refresh_token,
-      app_id:        user.lark_app_id,
-      app_secret:    user.lark_app_secret,
-    })
-  });
-  const { data } = await res.json();
-
-  await sql`
-    UPDATE users SET
-      lark_access_token = ${data.access_token},
-      lark_refresh_token = ${data.refresh_token},
-      lark_token_expires_at = ${Date.now() + data.expires_in * 1000}
-    WHERE id = ${user.id}
-  `;
-
-  return data.access_token;
-}
-
 // ─── Google API helpers ──────────────────────────────────────
 
 async function googleCreateEvent(token, event) {
@@ -257,7 +194,7 @@ async function googleUpdateEvent(token, eventId, event) {
 
 // ─── Lark API helpers ────────────────────────────────────────
 
-async function larkCreateEvent(user, token, event) {
+async function larkCreateEvent(token, event) {
   const res = await fetch(
     `https://open.larksuite.com/open-apis/calendar/v4/calendars/primary/events`,
     {
@@ -270,7 +207,7 @@ async function larkCreateEvent(user, token, event) {
   return data?.event;
 }
 
-async function larkUpdateEvent(user, token, eventId, event) {
+async function larkUpdateEvent(token, eventId, event) {
   await fetch(
     `https://open.larksuite.com/open-apis/calendar/v4/calendars/primary/events/${eventId}`,
     {
@@ -281,7 +218,7 @@ async function larkUpdateEvent(user, token, eventId, event) {
   );
 }
 
-async function larkDeleteEvent(user, token, eventId) {
+async function larkDeleteEvent(token, eventId) {
   await fetch(
     `https://open.larksuite.com/open-apis/calendar/v4/calendars/primary/events/${eventId}`,
     {
