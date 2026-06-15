@@ -40,15 +40,24 @@ async function syncUser(user, sql) {
     SELECT val FROM sync_state
     WHERE user_id = ${user.id} AND key = 'synced_until'
   `;
-  const since = new Date(Date.now() - 365 * 24 * 60 * 60_000).toISOString();
+  // Lần đầu: lấy 1 năm trước. Các lần sau: lấy từ lần sync trước
+  const syncedUntil = state ? Number(state.val) : Date.now() - 365 * 24 * 60 * 60_000;
+  const since = new Date(syncedUntil).toISOString();
 
   const googleToken = await refreshGoogleToken(user);
-  const larkToken = await getLarkTenantToken(user);
+  const larkToken = await refreshLarkToken(user);
 
   await Promise.all([
     syncGoogleToLark(user, googleToken, larkToken, since, sql),
     syncLarkToGoogle(user, googleToken, larkToken, since, sql),
   ]);
+
+  // Lưu thời điểm sync để lần sau chỉ sync phần mới
+  await sql`
+    INSERT INTO sync_state (user_id, key, val)
+    VALUES (${user.id}, 'synced_until', ${String(Date.now())})
+    ON CONFLICT (user_id, key) DO UPDATE SET val = EXCLUDED.val
+  `;
 }
 
 // ── Google → Lark ────────────────────────────────────────────
