@@ -29,6 +29,7 @@ export default async function handler(req, res) {
     const refreshToken = result?.data?.refresh_token || result?.refresh_token;
     const expiresIn = result?.data?.expires_in || result?.expires_in || 7200;
 
+    console.log("Lark token result:", JSON.stringify(result));
     if (!accessToken) {
       return res.status(400).json({ error: "Lark auth failed", detail: result });
     }
