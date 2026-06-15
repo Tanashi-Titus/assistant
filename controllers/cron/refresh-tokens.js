@@ -35,12 +35,9 @@ export default async function handler(req, res) {
     // ── Refresh Lark Token ──
     if (user.lark_connected && user.lark_refresh_token) {
       try {
-        if (user.lark_token_expires_at < Date.now() + 60 * 60_000) {
-          const newToken = await refreshLarkToken(user);
-          status.lark = newToken ? 'refreshed' : 'failed';
-        } else {
-          status.lark = 'still_valid';
-        }
+        // Luôn refresh Lark để gia hạn refresh_token (tránh hết hạn sau 7 ngày)
+        const newToken = await refreshLarkToken(user);
+        status.lark = newToken ? 'refreshed' : 'failed';
       } catch (e) {
         status.lark = `error: ${e.message}`;
       }
